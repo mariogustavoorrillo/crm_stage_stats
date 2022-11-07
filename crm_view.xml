@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="crm_stage_stat_form" model="ir.ui.view">
+        <field name="name">crm.stage.stat.form</field>
+	<field name="model">crm.stage</field>
+	<field name="inherit_id" ref="crm.crm_stage_form"></field>
+	<field name="arch" type="xml">
+		<field name="is_won" position="after">
+			<field name="is_invoiced" />
+			<field name="is_certified" />
+			<field name="is_lost" />
+		</field>
+        </field>
+    </record>
+
+
+    <record id="sale_order_stat_tree" model="ir.ui.view">
+	<field name="name">sale.order.stat.tree</field>
+	<field name="model">sale.order</field>
+	<field name="inherit_id" ref="sale.view_order_tree"></field>
+	<field name="arch" type="xml">
+		<field name="state" position="after">
+			<field name="itp_state" />
+			<field name="is_certified" />
+		</field>
+	</field>
+    </record>
+
+
+    <record id="sale_order_quotation_stat_tree" model="ir.ui.view">
+	<field name="name">sale.order.quotation.stat.tree</field>
+	<field name="model">sale.order</field>
+	<field name="inherit_id" ref="sale.view_quotation_tree"></field>
+	<field name="arch" type="xml">
+		<field name="state" position="after">
+			<field name="itp_state" />
+			<field name="is_certified" />
+		</field>
+	</field>
+    </record>
+
+
+    <record id="sale_order_quotation_stat_tree" model="ir.ui.view">
+	<field name="name">sale.order.quotation.stat.tree</field>
+	<field name="model">sale.order</field>
+	<field name="inherit_id" ref="sale.view_quotation_tree"></field>
+	<field name="arch" type="xml">
+		<field name="state" position="after">
+			<field name="is_certified" />
+		</field>
+	</field>
+    </record>
+
+    <record id="sale_order_stat_form" model="ir.ui.view">
+	<field name="name">sale.order.stat.form</field>
+	<field name="model">sale.order</field>
+	<field name="inherit_id" ref="sale.view_order_form"></field>
+	<field name="arch" type="xml">
+		<xpath expr="//header" position="inside" >
+			<field name="is_certified" invisible="1" />
+			<button name="btn_mark_certified" string="Confirmar envio de certificado" type="object" 
+				attrs="{'invisible': [('is_certified','=',True)]}"/>
+			<button name="btn_mark_uncertified" string="Desconfirmar envio de certificado" type="object" 
+				attrs="{'invisible': [('is_certified','=',False)]}"/>
+		</xpath>
+        </field>
+    </record>
+
+
+    <record id="crm_lead_stat_form" model="ir.ui.view">
+        <field name="name">crm.lead.stat.form</field>
+	<field name="model">crm.lead</field>
+	<field name="inherit_id" ref="crm.crm_lead_view_form"></field>
+	<field name="arch" type="xml">
+		<xpath expr="//header" position="inside" >
+			<button name="btn_mark_certified" string="Certificado" type="object" />
+		</xpath>
+		<xpath expr="//notebook" position="inside">
+			<page string="Stage stats">
+				<field name="stage_stat_ids" readonly="1">
+            				<tree string="A2 Sales">
+                				<field name="stage_from_id" />
+                				<field name="stage_to_id" />
+                				<field name="date" />
+                				<field name="diff_days" />
+            				</tree>
+				</field>
+			</page>
+		</xpath>
+        </field>
+    </record>
+
+    <record id="crm_stage_stat_tree" model="ir.ui.view">
+        <field name="name">crm.stage.stat.tree</field>
+        <field name="model">crm.stage.stat</field>
+        <field name="arch" type="xml">
+            <tree string="CRM Stage Stats" edit="0" create="0" delete="0">
+                <field name="lead_id" />
+                <field name="stage_from_id" />
+                <field name="stage_to_id" />
+                <field name="date" />
+               	<field name="diff_days" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_crm_stage_stat" model="ir.actions.act_window">
+        <field name="name">CRM Stage Stat</field>
+        <field name="res_model">crm.stage.stat</field>
+        <field name="view_mode">tree,pivot</field>
+    </record>
+
+    <menuitem id="menu_crm_stage_stats"
+            name="CRM Stage Stats"
+            parent="crm.crm_menu_report"
+            action="action_crm_stage_stat"
+            sequence="10"
+	    groups="sales_team.group_sale_salesman"/>
+
+</odoo>
