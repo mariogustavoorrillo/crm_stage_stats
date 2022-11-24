@@ -52,7 +52,7 @@ class CrmLead(models.Model):
                 stat_id = self.env['crm.stage.stat'].create(vals)
         return res
 
-    def _compute_expected_revenue(self):
+    def update_expected_revenue(self):
         for rec in self:
             res = 0
             for sale_order in rec.order_ids:
@@ -60,7 +60,7 @@ class CrmLead(models.Model):
             rec.expected_revenue = res
 
     stage_stat_ids = fields.One2many(comodel_name='crm.stage.stat',inverse_name='lead_id',string='Stage stats')
-    expected_revenue = fields.Float('Expected Revenue',compute=_compute_expected_revenue)
+    expected_revenue = fields.Float('Expected Revenue')
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
@@ -115,3 +115,24 @@ class SaleOrder(models.Model):
     def btn_mark_uncertified(self):
         for rec in self:
             rec.is_certified = False
+
+    @api.model
+    def create(self, vals):
+        res = super(SaleOrder, self).create(vals)
+        for rec in res:
+            if rec.opportunity_id:
+                oppor = rec.opportunity_id
+                oppor.update_expected_revenue()
+        return res
+
+    def write(self, vals):
+        res = super(SaleOrder, self).write(vals)
+        for rec in self:
+            if rec.opportunity_id:
+                oppor = rec.opportunity_id
+                oppor.update_expected_revenue()
+        return res
+
+    def update_expected_revenue(self):
+        for rec in self:
+            rec.opportunity_id.update_expected_revenue()
