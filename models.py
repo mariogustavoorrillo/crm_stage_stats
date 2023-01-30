@@ -50,6 +50,16 @@ class CrmLead(models.Model):
                         'diff_days': diff_days,
                         }
                 stat_id = self.env['crm.stage.stat'].create(vals)
+        if 'stage_to_id' in vals:
+            for rec in self:
+                order_ids = self.env['sale.order'].search([('opportunity_id','=',rec.id)])
+                for order in order_ids:
+                    order.opportunity_stage_id = vals.get('stage_to_id')
+        if 'stage_id' in vals:
+            for rec in self:
+                order_ids = self.env['sale.order'].search([('opportunity_id','=',rec.id)])
+                for order in order_ids:
+                    order.opportunity_stage_id = vals.get('stage_id')
         return res
 
     def update_expected_revenue(self):
@@ -67,6 +77,7 @@ class SaleOrder(models.Model):
 
     def action_cancel(self):
         for rec in self:
+            rec.write({'itp_state': 'cancel'})
             if rec.opportunity_id:
                 opportunity_id = rec.opportunity_id
                 stage_id = self.env['crm.stage'].search([('is_lost','=',True)],limit=1)
@@ -77,9 +88,13 @@ class SaleOrder(models.Model):
     def action_confirm(self):
         res = super(SaleOrder, self).action_confirm()
         for rec in self:
+            rec.write({'itp_state': 'done'})
             if rec.opportunity_id:
                 opportunity_id = rec.opportunity_id
                 opportunity_id.action_set_won()
+                stage_id = self.env['crm.stage'].search([('is_won','=',True)],limit=1)
+                if stage_id:
+                    opportunity_id.stage_id = stage_id.id
         return res
 
     def _create_invoices(self, grouped=False, final=False, date=None):
@@ -104,12 +119,27 @@ class SaleOrder(models.Model):
         for rec in self:
             rec.itp_state = rec.state
 
+    def _compute_itp_invoice_status(self):
+        for rec in self:
+            res = 'no_invoice'
+            if rec.invoice_ids:
+                res = 'invoice_draft'
+                for move in rec.invoice_ids:
+                    if move.state == 'posted':
+                        res = 'invoice_posted'
+                        break
+            rec.itp_invoice_status = res
+
     itp_state = fields.Selection(ORDER_STATES, string='ITP Status', 
             readonly=True, copy=False, index=True, tracking=3, default='draft',store=True,compute=_compute_itp_state)
     is_certified = fields.Boolean('Certificado?',default=False)
+    opportunity_stage_id = fields.Many2one('crm.stage','Etapa oportunidad')
+    itp_invoice_status = fields.Selection(selection=[('no_invoice','No enviado a facturar'),('invoice_draft','Enviado a facturar'),('invoice_posted','Facturacion completa')],compute=_compute_itp_invoice_status)
 
     def btn_mark_certified(self):
         for rec in self:
+            if rec.itp_invoice_status != 'invoice_posted':
+                raise ValidationError('No se puede ingresar un certificado si la facturacion no es completa')
             rec.is_certified = True
 
     def btn_mark_uncertified(self):
@@ -123,6 +153,7 @@ class SaleOrder(models.Model):
             if rec.opportunity_id:
                 oppor = rec.opportunity_id
                 oppor.update_expected_revenue()
+                rec.opportunity_stage_id = oppor.stage_id.id
         return res
 
     def write(self, vals):
